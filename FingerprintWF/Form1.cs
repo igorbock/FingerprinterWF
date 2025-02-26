@@ -1,14 +1,13 @@
-﻿using DPFP;
-using DPFP.Capture;
-using System;
+﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
+using DPUruNet;
 
 namespace FingerprintWF
 {
-    public partial class Form1 : Form, DPFP.Capture.EventHandler
+    public partial class Form1 : Form
     {
-        private DPFP.Capture.Capture _capturer;
+        private Reader _reader;
 
         public Form1()
         {
@@ -19,18 +18,18 @@ namespace FingerprintWF
         {
             try
             {
-                _capturer = new Capture();
-                if (_capturer != null)
-                {
-                    _capturer.EventHandler = this;
-                    MakeReport("Pronto para iniciar");
-                }
+                _reader = ReaderCollection.GetReaders()[0];
+                image.Image = null;
+
+                var result = _reader.Open(Constants.CapturePriority.DP_PRIORITY_COOPERATIVE);
+                if (result != Constants.ResultCode.DP_SUCCESS)
+                    MakeReport($"Ainda não está pronto: {result}");
                 else
-                    MakeReport("ainda não está pronto");
+                    MakeReport("Pronto para iniciar");
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message);
+                MessageBox.Show(ex.ToString());
             }
         }
 
@@ -42,51 +41,29 @@ namespace FingerprintWF
             }));
         }
 
-        public void OnComplete(object Capture, string ReaderSerialNumber, Sample Sample)
-        {
-            MakeReport("A captura foi realizada");
-            Proccess(Sample);
-        }
+        //protected virtual void Proccess(DPFP.Sample sample)
+        //{
+        //    DrawImage(ConvertSampleToBitmap(sample));
+        //}
 
-        public void OnFingerGone(object Capture, string ReaderSerialNumber) => MakeReport("O dedo foi removido do leitor");
+        //protected Bitmap ConvertSampleToBitmap(DPFP.Sample sample)
+        //{
+        //    DPFP.Capture.SampleConversion conversor = new SampleConversion();
+        //    Bitmap bitmap = null;
+        //    conversor.ConvertToPicture(sample, ref bitmap);
 
-        public void OnFingerTouch(object Capture, string ReaderSerialNumber) => MakeReport("O leitor foi tocado");
+        //    return bitmap;
+        //}
 
-        public void OnReaderConnect(object Capture, string ReaderSerialNumber) => MakeReport("Conectada");
-
-        public void OnReaderDisconnect(object Capture, string ReaderSerialNumber) => MakeReport("Desconectada");
-
-        public void OnSampleQuality(object Capture, string ReaderSerialNumber, CaptureFeedback CaptureFeedback)
-        {
-            if (CaptureFeedback == CaptureFeedback.Good)
-                MakeReport("A captura está boa");
-            else
-                MakeReport("A captura está ruim");
-        }
-
-        protected virtual void Proccess(DPFP.Sample sample)
-        {
-            DrawImage(ConvertSampleToBitmap(sample));
-        }
-
-        protected Bitmap ConvertSampleToBitmap(DPFP.Sample sample)
-        {
-            DPFP.Capture.SampleConversion conversor = new SampleConversion();
-            Bitmap bitmap = null;
-            conversor.ConvertToPicture(sample, ref bitmap);
-
-            return bitmap;
-        }
-
-        private void DrawImage(Bitmap bitmap) => image.Image = new Bitmap(bitmap, image.Size);
+        //private void DrawImage(Bitmap bitmap) => image.Image = new Bitmap(bitmap, image.Size);
 
         private void btnStart_Click(object sender, EventArgs e)
         {
-            if (_capturer != null)
+            if (_reader != null)
             {
                 try
                 {
-                    _capturer.StartCapture();
+                    //_reader.CaptureAsync();
                     MakeReport("Faça a leitura do dedo");
                 }
                 catch (Exception ex)
@@ -94,6 +71,8 @@ namespace FingerprintWF
                     MakeReport($"um erro aconteceu: {ex.Message}");
                 }
             }
+            else
+                Form1_Load(sender, e);
         }
     }
 }
